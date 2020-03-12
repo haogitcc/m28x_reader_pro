@@ -1,0 +1,6 @@
+#!/bin/sh
+
+cat upgrade_temp.bin reader > FUWIT_UPGRADE.bin
+
+
+
