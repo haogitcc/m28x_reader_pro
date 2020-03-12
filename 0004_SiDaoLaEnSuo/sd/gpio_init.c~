@@ -1,0 +1,112 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <time.h>
+#include <sys/select.h>
+#include <sys/time.h>
+
+#include "gpio_init.h"
+
+
+//#define GPO1_DEVICE "/sys/class/gpio/gpio108/value"
+#define GPO2_DEVICE "/sys/class/gpio/gpio63/value"
+
+static int fd1,fd2;
+
+void setTimer(int seconds, int mseconds)
+{
+	struct timeval temp;
+	temp.tv_sec = seconds;
+	temp.tv_usec = mseconds;
+	select(0,NULL,NULL,NULL,&temp);
+	return;
+}
+
+int gpo_open(char *device)
+{
+	int fd;
+	fd = open(device,O_RDWR);
+	if(fd < 0) {
+		printf("Open file %s failed!\n",device);
+		return -1;
+	}
+
+	return fd;
+}
+
+int gpo_close()
+{
+	//close(fd1);
+	close(fd2);
+	return 0;
+}
+
+int gpo_init()
+{
+/*	if((fd1 = gpo_open(GPO1_DEVICE)) < 0) {
+		gpo_close();
+		return -1;
+	}
+*/
+	if((fd2 = gpo_open(GPO2_DEVICE)) < 0) {
+		gpo_close();
+		return -1;
+	}
+
+	return 0;
+}
+
+
+/*int gpo1_write()
+{
+	int bytes_read = -1;
+
+	lseek(fd1, 0, SEEK_SET);
+	bytes_read = write(fd1, "1" ,1);
+	if(bytes_read < 0) {
+		goto Err;
+	}
+	setTimer(0,20000-100);
+	lseek(fd1, 0, SEEK_SET);
+	bytes_read = write(fd1, "0" ,1);
+	if(bytes_read< 0) {
+		goto Err;
+	}
+
+	return 0;
+
+Err:
+	gpo_close();
+	gpo_init();
+	return -1;
+}
+*/
+int gpo2_write()
+{
+	printf("gpo2_write\n");
+	int bytes_read = -1;
+
+	lseek(fd2, 0, SEEK_SET);
+	bytes_read = write(fd2, "1" ,1);
+	if(bytes_read < 0) {
+		goto Err;
+	}
+	setTimer(0,10000 - 80);
+	lseek(fd2, 0, SEEK_SET);
+	bytes_read = write(fd2, "0" ,1);
+	if(bytes_read< 0) {
+		goto Err;
+	}
+
+	return 0;
+
+Err:
+	printf("gpo2 write failed!\n");
+	gpo_close();
+	gpo_init();
+	return -1;
+}
+
+
+
