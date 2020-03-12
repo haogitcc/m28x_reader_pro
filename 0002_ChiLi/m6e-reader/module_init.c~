@@ -1,0 +1,247 @@
+#include "tm_reader.h"
+#include "serial_reader_imp.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <inttypes.h>
+#include <stdbool.h>
+#include "gpio_init.h"
+
+
+TMR_Reader r, *rp;
+TMR_Region region = TMR_REGION_NA;
+TMR_SR_UserConfigOp config;
+TMR_GPITriggerRead triggerRead;
+TMR_ReadPlan plan;
+//uint8_t *antennaList = NULL;
+//uint8_t antennaCount = 0;
+
+TMR_TagOp op;
+TMR_uint8List gpiPort;
+uint8_t data[1] = {1};
+TMR_SR_UserConfigOp config;
+
+TMR_ReadListenerBlock rlb;
+TMR_ReadExceptionListenerBlock reb;
+
+
+#define DEVICE_NAME "tmr:///dev/ttySP0"
+
+void callback(TMR_Reader *reader, const TMR_TagReadData *t, void *cookie);
+void exceptionCallback(TMR_Reader *reader, TMR_Status error, void *cookie);
+void module_detroy();
+
+void checkerr(TMR_Reader* rp, TMR_Status ret, int exitval, const char *msg)
+{
+	if (TMR_SUCCESS != ret)
+	{
+		//errx(exitval, "Error %s: %s\n", msg, TMR_strerr(rp, ret));
+		printf("Error %s: %s\n",msg, TMR_strerr(rp, ret));
+	}
+}
+
+int module_init()
+{
+	TMR_Status ret;
+	rp = &r;
+	ret = TMR_create(rp, DEVICE_NAME);
+	checkerr(rp, ret, 1, "creating reader");
+	if(ret != 0)
+		goto Err;
+
+	ret = TMR_connect(rp);
+	checkerr(rp, ret, 1, "connecting reader");
+	if(ret != 0)
+		goto Err;
+
+	TMR_String model;
+	TMR_paramGet(rp, TMR_PARAM_VERSION_MODEL, &model);
+
+	region = TMR_REGION_NA;
+	ret = TMR_paramSet(rp, TMR_PARAM_REGION_ID, &region);
+	checkerr(rp, ret, 1, "setting region");
+	if(ret != 0)
+		goto Err;
+
+/*	if(0 == strcmp("M6e Micro", model.value) || 0 == strcmp("M6e", model.value))
+	{
+		region = TMR_REGION_NA;
+		ret = TMR_paramSet(rp, TMR_PARAM_REGION_ID, &region);
+		checkerr(rp, ret, 1, "setting region");
+		if(ret != 0)
+			goto Err;
+	} else if(0 == strcmp("M6e Nano", model.value)) {
+		region = TMR_REGION_NA2;
+		ret = TMR_paramSet(rp, TMR_PARAM_REGION_ID, &region);
+		checkerr(rp, ret, 1, "setting region");
+		if(ret != 0)
+			goto Err;
+	} else {
+		region = TMR_REGION_NA;
+		ret = TMR_paramSet(rp, TMR_PARAM_REGION_ID, &region);
+		checkerr(rp, ret, 1, "setting region");
+		if(ret != 0)
+			goto Err;		
+	}*/
+
+	return 0;
+Err:
+	printf("module init failed!\n");
+	return -1;
+}
+
+int module_clear()
+{
+	TMR_Status ret;
+	ret = TMR_init_UserConfigOp(&config, TMR_USERCONFIG_CLEAR);
+	checkerr(rp, ret, 1, "Initialization configuration: reset all saved configuration params");
+	ret = TMR_paramSet(rp, TMR_PARAM_USER_CONFIG, &config);
+	checkerr(rp, ret, 1, "setting user configuration option: reset all configuration parameters");
+	printf("User config set option:reset all configuration parameters\n");
+
+}
+
+int module_gpitriger()
+{
+	TMR_Status ret;
+	TMR_GEN2_Bank bank = TMR_GEN2_BANK_TID;
+	int isReadData = 0;
+	uint32_t wordAddres = 0;
+	uint8_t len= 0;
+	uint8_t *antennaList = NULL;
+	uint8_t buffer[20] = {1};
+	uint8_t antennaCount = 1;
+	antennaList = buffer;
+	
+	TMR_RP_init_simple(&plan, antennaCount, antennaList, TMR_TAG_PROTOCOL_GEN2, 1000);	
+
+	if(isReadData) {
+		ret = TMR_TagOp_init_GEN2_ReadData(&op, bank, wordAddres, len);
+		checkerr(rp, ret, 1, "creating tagop: GEN2 read data");
+		ret = TMR_RP_set_tagop(&plan, &op);
+		checkerr(rp, ret, 1, "setting tagop");
+	} else {
+		ret = TMR_RP_set_tagop(&plan, NULL);
+		checkerr(rp, ret, 1, "setting tagop");		
+	}
+
+	ret = TMR_GPITR_init_enable (&triggerRead, true);
+	checkerr(rp, ret, 1, "Initializing the trigger read");
+	ret = TMR_RP_set_enableTriggerRead(&plan, &triggerRead);
+	checkerr(rp, ret, 1, "setting trigger read");
+
+	gpiPort.len = gpiPort.max = 1;
+	gpiPort.list = data;
+	ret = TMR_paramSet(rp, TMR_PARAM_TRIGGER_READ_GPI, &gpiPort);
+	checkerr(rp, ret, 1, "setting GPI port");
+	ret = TMR_RP_set_enableAutonomousRead(&plan, true);
+	checkerr(rp, ret, 1, "setting autonomous read");
+
+	/* Commit read plan */
+	ret = TMR_paramSet(rp, TMR_PARAM_READ_PLAN, &plan);
+	checkerr(rp, ret, 1, "setting read plan");
+
+	int readpower = 500;
+	sysSettingGetInt("readpower", &readpower ,1);
+	ret = TMR_paramSet(rp, TMR_PARAM_RADIO_READPOWER,&readpower);
+
+	TMR_GEN2_Session session;
+	session = TMR_GEN2_SESSION_S1;
+ 	ret = TMR_paramSet(rp,TMR_PARAM_GEN2_SESSION, &session);
+	checkerr(rp, ret, 1, "setting session");
+
+	
+	/* Init UserConfigOp structure to save read plan configuration */
+	ret = TMR_init_UserConfigOp(&config, TMR_USERCONFIG_SAVE_WITH_READPLAN);
+	checkerr(rp, ret, 1, "Initializing user configuration: save read plan configuration");
+	ret = TMR_paramSet(rp, TMR_PARAM_USER_CONFIG, &config);
+	checkerr(rp, ret, 1, "setting user configuration: save read plan configuration");
+	printf("User config set option:save read plan configuration\n");
+
+	/* Restore the save read plan configuration */
+	/* Init UserConfigOp structure to Restore all saved configuration parameters */
+	ret = TMR_init_UserConfigOp(&config, TMR_USERCONFIG_RESTORE);
+	checkerr(rp, ret, 1, "Initialization configuration: restore all saved configuration params");
+	ret = TMR_paramSet(rp, TMR_PARAM_USER_CONFIG, &config);
+	checkerr(rp, ret, 1, "setting configuration: restore all saved configuration params");
+	printf("User config set option:restore all saved configuration params\n");
+
+	rlb.listener = callback;
+	rlb.cookie = NULL;
+
+	reb.listener = exceptionCallback;
+	reb.cookie = NULL;
+
+	ret = TMR_addReadListener(rp, &rlb);
+	checkerr(rp, ret, 1, "adding read listener");
+
+	ret = TMR_addReadExceptionListener(rp, &reb);
+    checkerr(rp, ret, 1, "adding exception listener");
+
+	ret = TMR_receiveAutonomousReading(rp, NULL, NULL);
+	checkerr(rp, ret, 1, "Autonomous reading");	
+}
+
+void
+callback(TMR_Reader *reader, const TMR_TagReadData *t, void *cookie)
+{
+/*	char epcStr[128];
+
+	TMR_bytesToHex(t->tag.epc, t->tag.epcByteCount, epcStr);
+	printf("%s\n", epcStr);*/
+	/*if (0 < t->data.len)
+    {
+      char dataStr[255];
+      TMR_bytesToHex(t->data.list, t->data.len, dataStr);
+      //printf("  data(%d): %s\n", t.data.len, dataStr);
+    }*/
+	gpo2_write();
+}
+
+void reboot_connect()
+{
+	printf("reboot_connect!\n");
+  	//TMR_SR_reboot(rp);
+  	module_detroy();
+  	if(module_init() == 0) {
+  		module_gpitriger();
+  	} else {
+		if(module_init() == 0)
+			module_gpitriger();
+  	}
+
+}
+
+void 
+exceptionCallback(TMR_Reader *reader, TMR_Status error, void *cookie)
+{
+  //fprintf(stdout, "Error:%s\n", TMR_strerr(reader, error));
+  //printf("Error:%s\n",TMR_strerr(reader, error));
+  if(error == TMR_ERROR_NOT_FOUND || error == TMR_ERROR_NO_TAGS || error == TMR_ERROR_NO_TAGS_FOUND || TMR_ERROR_TIMEOUT)
+  	return;
+  else {
+  	printf("Error:%s\n",TMR_strerr(reader, error));
+  	printf("reboot!\n");
+	system("reboot");
+/*	pthread_t stbmonitor_pthread = 0;
+	pthread_attr_t tattr;
+	pthread_attr_init(&tattr);
+	pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
+	pthread_create(&stbmonitor_pthread, &tattr, reboot_connect, NULL);*/
+  }
+}
+
+
+void module_detroy()
+{
+	printf("module_detroy!\n");
+	TMR_Status ret;
+	ret = TMR_removeReadListener(rp, &rlb);
+	checkerr(rp, ret, 1, "remove read listener");
+
+	ret = TMR_removeReadExceptionListener(rp,&reb);
+	checkerr(rp, ret, 1, "remove read ExceptionListener");
+	TMR_destroy(rp);
+}
+
