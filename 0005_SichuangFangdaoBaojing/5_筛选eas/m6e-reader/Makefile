@@ -1,0 +1,45 @@
+EXEC = reader
+OBJS := serial_reader.o \
+		tmr_utils.o \
+		serial_reader_l3.o \
+		tm_reader.o \
+		tmr_strerror.o \
+		hex_bytes.o \
+		tm_reader_async.o \
+		osdep_posix.o \
+		serial_transport_posix.o \
+		app_sys_setting.o \
+		ind_cfg.o \
+		ind_string.o \
+		m6e_upgrade.o \
+		mid_msgq.o \
+		mid_mutex.o \
+		mid_net.o \
+		mid_select.o \
+		mid_task.o \
+		mid_telnet.o \
+		mid_timer.o \
+		module_init.o \
+		osex_net.o \
+		reader.o \
+		ringbuf.o \
+		server_m6e.o \
+		shell_play.o \
+		telnetd_port.o \
+		tmr_loadsave_configuration.o \
+		tmr_param.o \
+		gpio_init.o \
+
+CROSS = /opt/gcc-4.4.4-glibc-2.11.1-multilib-1.0/arm-fsl-linux-gnueabi/bin/arm-fsl-linux-gnueabi-
+CC = $(CROSS)gcc
+STRIP = $(CROSS)strip
+CFLAGS = -Wall -g -O2 
+
+all: clean $(EXEC)
+
+$(EXEC):$(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) -lpthread -lrt
+
+clean:
+	-rm -f $(EXEC) *.o
+
