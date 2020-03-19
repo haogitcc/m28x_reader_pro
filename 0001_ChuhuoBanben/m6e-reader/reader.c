@@ -13,8 +13,8 @@
 #include "m6e_init.h"
 #include "gpio_init.h"
 
-#define DEVICE "/dev/ttySP0"
-#define DEVICE_NAME "tmr:///dev/ttySP0"
+#define DEVICE "/dev/ttymxc1"
+#define DEVICE_NAME "tmr:///dev/ttymxc1"
 
 void handle_pipe(int sig)
 {
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
 	gpio_init();
 
-	if(0 == m6e_init("tmr:///dev/ttySP0"))
+	if(0 == m6e_init(DEVICE_NAME))
 	{
 		m6e_configuration_init();
 		m6e_destory();

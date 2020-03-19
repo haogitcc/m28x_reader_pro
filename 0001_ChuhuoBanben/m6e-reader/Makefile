@@ -1,7 +1,7 @@
 # 1) Select cross toolchains
 #CC=gcc
-CROSS = /opt/gcc-4.4.4-glibc-2.11.1-multilib-1.0/arm-fsl-linux-gnueabi/bin/arm-fsl-linux-gnueabi-
-#CROSS = /opt/myd_toolchains/gcc-linaro-4.9-2014.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+#CROSS = /opt/gcc-4.4.4-glibc-2.11.1-multilib-1.0/arm-fsl-linux-gnueabi/bin/arm-fsl-linux-gnueabi-
+CROSS = /opt/myd_toolchains/gcc-linaro-4.9-2014.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
 
 CC = $(CROSS)gcc
 STRIP = $(CROSS)strip
@@ -12,8 +12,8 @@ TM_INC_DIR := /include/mercuryapi_include
 INC_DIR := -I./include -I.$(TM_INC_DIR)
 
 # 3) Select the mercuryapi dir, must reference to 1)
-TM_LIB_PATH := ./lib/m28x_mercuryapi_1.31.3.36
-#TM_LIB_PATH := ./lib/myd_mercuryapi_1.31.3.36
+#TM_LIB_PATH := ./lib/m28x_mercuryapi_1.31.3.36
+TM_LIB_PATH := ./lib/myd_mercuryapi_1.31.3.36
 
 LIB_PATH := ./lib
 LINK_LIB = -L$(LIB_PATH) -ldhcpcd -L$(TM_LIB_PATH) -lmercuryapi -L$(TM_LIB_PATH) -lltkc -L$(TM_LIB_PATH) -lltkctm

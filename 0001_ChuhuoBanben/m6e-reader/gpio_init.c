@@ -11,31 +11,36 @@
 
 #define MSG(args...) printf(args);
 
+#define GPO_28 44
+#define GPO_29 43
+#define GPI_30 42
+#define GPI_31 41
+
 //#define GPO1_DEVICE "/sys/class/gpio/gpio108/value"
-#define GPO2_DEVICE "/sys/class/gpio/gpio60/value"
-#define GPO3_DEVICE "/sys/class/gpio/gpio61/value"
-#define GPO4_DEVICE "/sys/class/gpio/gpio62/value"
-#define GPO5_DEVICE "/sys/class/gpio/gpio63/value"
+#define GPO2_DEVICE "/sys/class/gpio/gpio44/value"
+#define GPO3_DEVICE "/sys/class/gpio/gpio43/value"
+#define GPO4_DEVICE "/sys/class/gpio/gpio42/value"
+#define GPO5_DEVICE "/sys/class/gpio/gpio41/value"
 
 static int fdo1,fdo2,fdi;
 static struct timeval tv;
 
 void gpio_init()
 {
-	gpio_export(60);
-	gpio_direction(60, 1);
-	gpio_write(60, 0);
+	gpio_export(GPO_28);
+	gpio_direction(GPO_28, 1);
+	gpio_write(GPO_28, 0);
 
-	gpio_export(61);
-	gpio_direction(61, 1);
-	gpio_write(61, 1);
+	gpio_export(GPO_29);
+	gpio_direction(GPO_29, 1);
+	gpio_write(GPO_29, 1);
 
-	gpio_export(62);
-	gpio_direction(62, 0);
+	gpio_export(GPI_30);
+	gpio_direction(GPI_30, 0);
 	//gpio_edge(62, 1);
 	
-	gpio_export(63);
-	gpio_direction(63, 0);
+	gpio_export(GPI_31);
+	gpio_direction(GPI_31, 0);
 	//gpio_edge(62, 1);
 	
 }
