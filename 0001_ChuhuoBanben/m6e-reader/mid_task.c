@@ -13,7 +13,7 @@ typedef void *(*pthread_routine) (void *);
 
 #define ERR_OUT() \
 do{                                     \
-    printf("error!\n");  \
+    printf("mid_task error!\n");  \
     goto Err;                           \
 } while(0)
 

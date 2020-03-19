@@ -12,7 +12,7 @@
 #include <linux/tcp.h>
 #include <stdint.h>
 
-
+#include "gpio_init.h"
 #include "mid_mutex.h"
 #include "server_m6e.h"
 #include "include/mercuryapi_include/tmr_utils.h"
@@ -361,61 +361,77 @@ int reader_gpi(char *buffer, int fd)
 
 	ret = serial_sendBytes(buffer[1] +5, buffer);
 	ret = receiveMessage(msg, &len, 5000);
-	printf("m6e_gpio = %d\n",ret);
+	/*printf("reader_gpi[%d]\n", len+1);
+	for(i=0; i<len; i++)
+	{
+	    printf("%p, ", msg[i]);
+	}
+	printf("done ...\n");*/
 
- 	 len = (msg[1] - 1)/3;
-	 
+ 	len = (msg[1] - 1)/3;// (len-option)/3 (3=id+direction+high) //gpioµÄ¸öÊý
+	//printf("gpio_len=%d\n", len);
   	offset = 6;
- 	 for (j = 0; j < len ; j++)
+ 	for (j = 0; j < len ; j++)
   	{
-    		state[j].id = msg[offset++];
-    		state[j].output = (1 == msg[offset++]) ? true : false;
-    		state[j].high = (1 == msg[offset++]) ? true : false;
+		state[j].id = msg[offset++];
+		state[j].output = (1 == msg[offset++]) ? true : false;
+		state[j].high = (1 == msg[offset++]) ? true : false;
   	}
 	memset(msg, 0, TMR_SR_MAX_PACKET_SIZE);
-	 j = 0;
-  	for (i = 0 ; i < len ; i++)
-  	{
-   		 if (!state[i].output)
-   		 {
-      			/* If pin is input, only then copy to output */
-     			 stategpi[j].id = state[i].id;
-     		 	stategpi[j].high = state[i].high;
-      			stategpi[j].output = state[i].output;
-      			j ++;
-   		 }
-   	}
+	j = 0;
+	for (i = 0 ; i < len ; i++)
+	{
+		if (!state[i].output)
+		{
+			/* If pin is input, only then copy to output */
+			stategpi[j].id = state[i].id;
+			stategpi[j].high = state[i].high;
+			stategpi[j].output = state[i].output;
+			j ++;
+		}
+	}
 	stategpi[j].id = 5;
-     	stategpi[j].high = (0 ==gpio_read(62)? false:true);
-      	stategpi[j].output = state[i].output;
+ 	stategpi[j].high = (0 ==gpio_read(GPI_30)? false:true);
+  	stategpi[j].output = state[i].output;
 
 	j ++;
 	stategpi[j].id = 6;
-     	stategpi[j].high = (0 ==gpio_read(63)? false:true);
-      	stategpi[j].output = state[i].output;
+ 	stategpi[j].high = (0 ==gpio_read(GPI_31)? false:true);
+  	stategpi[j].output = state[i].output;
 
+    int gpi_count = j+1;
+	//printf("gpi_count=%d\n", gpi_count);
 	i = 0;	
 	SETU8(msg, i, 0xFF);
-	SETU8(msg, i, 0x0A);
+	int send_len = 1 + gpi_count*3;// option + data_length
+	//printf("send_len=%p(%d)\n", send_len, send_len);
+	SETU8(msg, i, send_len);
+	//SETU8(msg, i, 0x0A);
 	SETU8(msg, i, 0x66);
 	SETU8(msg, i, 0x00);
 	SETU8(msg, i, 0x00);
 	SETU8(msg, i, 0x01);
-	for(j = 0; j < 3;j++)
+	for(j = 0; j < gpi_count;j++)
 	{
 		SETU8(msg, i, stategpi[j].id);
 		SETU8(msg, i, stategpi[j].output);
 		SETU8(msg, i, stategpi[j].high);
 	}
 
-	crc = tm_crc(&msg[1] , 14);
-	msg[15] = crc >> 8;
-    	msg[16] = crc & 0xff;
+    int crc_len = send_len +4;//send_len + len + opcode + status
+	crc = tm_crc(&msg[1] , crc_len);
+	msg[send_len+5] = crc >> 8;
+	msg[send_len+6] = crc & 0xff;
 
-	ret = tcp_sendBytes(fd, 17, msg);
-	//printf("m6e_gpio = %d, ret = %d \n",ret, strlen(msg));
-	//printf("buffer = %p,%p,%p,%p,%p,%p,%p,%p,%p,%p,%p %d\n",msg[0],msg[1],msg[2],msg[3],msg[4],msg[6], msg[8],msg[9],msg[11],msg[12],msg[14],ret);
-
+    int msg_len = send_len +7; //send_len + soh + len + opcode + status(2) + crc(2)
+	ret = tcp_sendBytes(fd, msg_len, msg);
+	/*printf("tcp_sendBytes[%d]\n", msg_len);
+	for(i=0; i<msg_len; i++)
+	{
+	    printf("%p, ", msg[i]);
+	}
+	printf("done ...\n");*/
+	return 0;
 }
 
 

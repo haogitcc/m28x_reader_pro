@@ -13,7 +13,7 @@
 
 #define ERR_OUT() \
 do{                                     \
-    printf("error!\n");  \
+    printf("mid_telnet error!\n");  \
     goto Err;                           \
 } while(0)
 

@@ -14,7 +14,7 @@
 #define YEAR_CLOCK_NUM		(365*60*60*100)
 #define ERR_OUT() \
 do{                                     \
-    printf("error!\n");  \
+    printf("mid_timer error!\n");  \
     goto Err;                           \
 } while(0)
 

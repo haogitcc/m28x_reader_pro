@@ -9,7 +9,7 @@
 
 #define ERR_OUT() \
 do{                                     \
-    printf("error!\n");  \
+    printf("mid_msgq error!\n");  \
     goto Err;                           \
 } while(0)
 

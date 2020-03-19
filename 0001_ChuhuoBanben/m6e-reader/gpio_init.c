@@ -11,17 +11,6 @@
 
 #define MSG(args...) printf(args);
 
-#define GPO_28 44
-#define GPO_29 43
-#define GPI_30 42
-#define GPI_31 41
-
-//#define GPO1_DEVICE "/sys/class/gpio/gpio108/value"
-#define GPO2_DEVICE "/sys/class/gpio/gpio44/value"
-#define GPO3_DEVICE "/sys/class/gpio/gpio43/value"
-#define GPO4_DEVICE "/sys/class/gpio/gpio42/value"
-#define GPO5_DEVICE "/sys/class/gpio/gpio41/value"
-
 static int fdo1,fdo2,fdi;
 static struct timeval tv;
 
@@ -37,11 +26,11 @@ void gpio_init()
 
 	gpio_export(GPI_30);
 	gpio_direction(GPI_30, 0);
-	//gpio_edge(62, 1);
+	//gpio_edge(GPI_30, 1);
 	
 	gpio_export(GPI_31);
 	gpio_direction(GPI_31, 0);
-	//gpio_edge(62, 1);
+	//gpio_edge(GPI_31, 1);
 	
 }
 
