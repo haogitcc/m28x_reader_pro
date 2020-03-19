@@ -42,7 +42,6 @@ struct SYS_SETTINGS {
 	int target;
 };
 
-
 static struct SYS_SETTINGS sysConfigs;
 static mid_mutex_t g_mutex = NULL;
 static int gSaveMsgRecordCount = 0;
