@@ -15,8 +15,8 @@
 
 #include "mid_mutex.h"
 #include "server_m6e.h"
-#include "tmr_utils.h"
-#include "tmr_params.h"
+#include "include/mercuryapi_include/tmr_utils.h"
+#include "include/mercuryapi_include/tmr_params.h"
 
 #define PORT 8086
 #define MSGLEN 256

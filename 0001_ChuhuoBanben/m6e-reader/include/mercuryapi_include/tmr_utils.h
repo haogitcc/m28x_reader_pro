@@ -30,7 +30,11 @@
  * THE SOFTWARE.
  */
 
+#ifdef WINCE
+#include <stdint_win32.h>
+#else
 #include <stdint.h>
+#endif
 #include <stddef.h>
 
 #ifdef  __cplusplus
@@ -120,7 +124,33 @@ extern "C" {
 
 #define numberof(x) (sizeof((x))/sizeof((x)[0]))
 
+#ifndef TMR_USE_HOST_C_LIBRARY
+void *tm_memcpy(void *dest, const void *src, size_t n);
+char *tm_strcpy(char *dest, const char *src);
+char *tm_strchr(const char *s, int c);
 
+#undef memcpy
+#undef strcpy
+#undef strchr
+
+#define memcpy tm_memcpy
+#define strcpy tm_strcpy
+#define strchr tm_strchr
+#endif
+
+int tm_strcasecmp(const char *s1, const char *s2);
+#define strcasecmp tm_strcasecmp
+
+void tm_gettime_consistent(uint32_t *high, uint32_t *low);
+uint32_t tm_time_subtract(uint32_t end, uint32_t start);
+int tm_u8s_per_bits(int bitCount);
+//void TMR_stringCopy(TMR_String *dest, const char *src, int len);
+uint64_t TMR_makeBitMask(int offset, int length);
+uint32_t TMR_byteArrayToInt(uint8_t data[], int offset);
+uint16_t TMR_byteArrayToShort(uint8_t data[], int offset);
+uint64_t TMR_byteArrayToLong(uint8_t data[], int offset);
+void TMR_bytesToWords(uint16_t count, const uint8_t data[], uint16_t data16[]);
+void TMR_wordsToBytes(uint16_t count, const uint16_t data[], uint8_t buf[]);
 #ifdef __cplusplus
 }
 #endif

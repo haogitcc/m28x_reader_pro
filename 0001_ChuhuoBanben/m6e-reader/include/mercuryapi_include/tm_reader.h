@@ -30,6 +30,17 @@
  * THE SOFTWARE.
  */
 
+/* Due to incompatibilities between winsock.h and winsock2.h (plus interactions
+ * with windows.h) you're in for a storm of "redefinition" errors if you don't
+ * include winsock2.h first.
+ * 
+ * This is surprisingly hard, because lots of other headers include winsock.h
+ * themselves.  So include winsock2.h as early as possible.
+ */
+#if defined(WIN32) || defined(WINCE)
+#include <winsock2.h>
+#endif
+
 #include "tm_config.h"
 
 /**
@@ -60,23 +71,41 @@ typedef struct TMR_Reader TMR_Reader;
 #include "tmr_tagop.h"
 
 #include "tmr_serial_reader.h"
-
+#ifdef TMR_ENABLE_LLRP_READER
+#include "tmr_llrp_reader.h"
+#endif
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
+#if ENABLE_TMR_DEBUG != 0
+#define TMR_DEBUG(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, __VA_ARGS__);
+#else
+#define TMR_DEBUG(fmt, ...) {}
+#endif
+
+#define TAG_REPORT_DATA_ID         240
+#define RF_SURVEY_REPORT_DATA_ID   242
 
 #ifndef DOXYGEN_IGNORE
 typedef TMR_Status (*TMR_TransportNativeInit)(TMR_SR_SerialTransport *transport, TMR_SR_SerialPortNativeContext *context,
     const char *device);
 
+bool versionCompare(uint8_t *readerVersion, uint8_t *checkVersion);
+bool IsDutyCycleEnabled(TMR_Reader *reader);
+bool IsAntennaReadTimeEnabled(struct TMR_Reader *reader);
+bool isRegionConfiguration(struct TMR_Reader *reader);
+void checkForAvailableFeatures(struct TMR_Reader *reader);
+void checkForAvailableReaderFeatures(struct TMR_Reader *reader);
+
 typedef struct TMR_readParams
 {
-#ifdef TMR_ENABLE_BACKGROUND_READS
+#if defined(TMR_ENABLE_BACKGROUND_READS)|| defined(SINGLE_THREAD_ASYNC_READ)
   uint32_t asyncOnTime;
   uint32_t asyncOffTime;
 #endif
+  uint32_t onTime;
   TMR_ReadPlan defaultReadPlan;
   TMR_ReadPlan *readPlan;
 } TMR_readParams;
@@ -86,6 +115,14 @@ typedef struct TMR_tagOpParams
   uint8_t antenna;
   TMR_TagProtocol protocol;
 }TMR_tagOpParams;
+
+typedef struct TMR_regulatoryParams
+{
+  TMR_SR_RegulatoryMode RegMode;
+  TMR_SR_RegulatoryModulation RegModulation;
+  uint32_t regOnTime;
+  uint32_t regOffTime;
+}TMR_regulatoryParams;
 
 typedef enum TMR_ReaderType
 {
@@ -117,9 +154,9 @@ typedef enum TMR_Reader_StatsFlag
   TMR_READER_STATS_FLAG_RF_ON_TIME = (1 << 0),
   /** Noise floor with the TX on for the antennas were last configured for searching */
   TMR_READER_STATS_FLAG_NOISE_FLOOR_SEARCH_RX_TX_WITH_TX_ON = (1 << 6),
-  /** Current frequency in uints of Khz */
+  /** Current frequency in units of Khz */
   TMR_READER_STATS_FLAG_FREQUENCY = (1 << 7),
-  /** Current temperature of the device in units of Celcius */
+  /** Current temperature of the device in units of Celsius */
   TMR_READER_STATS_FLAG_TEMPERATURE = (1 << 8),
   /** Current antenna */
   TMR_READER_STATS_FLAG_ANTENNA_PORTS = (1 << 9),
@@ -149,6 +186,42 @@ typedef struct TMR_StatsPerAntennaValues
 	/** Noise Floor (TX on, all connected antennas) (dBm) */
 	int8_t noiseFloor;
 } TMR_StatsPerAntennaValues;
+
+/** Regulatory Mode parameters */
+typedef enum TMR_REGULATORY_Mode
+{
+  TMR_REGULATORY_MODE_CONTINUOUS = 0,
+  TMR_REGULATORY_MODE_ONESHOT = 1
+}TMR_REGULATORY_Mode;
+
+/** Regulatory Modulation parameters */
+typedef enum TMR_REGULATORY_Modulation
+{
+  TMR_REGULATORY_MODULATION_CW = 0,
+  TMR_REGULATORY_MODULATION_PRBS = 1
+}TMR_REGULATORY_Modulation;
+
+/**
+ *  Reader features Flag Enum
+ */
+typedef enum TMR_Reader_FeaturesFlag
+{
+  TMR_READER_FEATURES_FLAG_NONE = 0x00,
+  /** Duty cycle feature support flag */
+  TMR_READER_FEATURES_FLAG_DUTY_CYCLE = (1 << 0),
+  /** Multipe select feature support flag */
+  TMR_READER_FEATURES_FLAG_MULTI_SELECT = (1 << 1),
+  /** Antenna read time feature support flag */
+  TMR_READER_FEATURES_FLAG_ANTENNA_READ_TIME = (1 << 2),
+  /** Logical antenna extention(to 64 from 32) feature support flag */
+  TMR_READER_FEATURES_FLAG_EXTENDED_LOGICAL_ANTENNA = (1 << 3),
+  /** Flag to check if firmware version supports OPEN region configuration */
+  TMR_READER_FEATURES_FLAG_REGION_CONFIGURATION = (1 << 4),
+  
+  /* ALL */
+  TMR_READER_FEATURES_FLAG_ALL = (TMR_READER_FEATURES_FLAG_DUTY_CYCLE |
+      TMR_READER_FEATURES_FLAG_MULTI_SELECT | TMR_READER_FEATURES_FLAG_ANTENNA_READ_TIME | TMR_READER_FEATURES_FLAG_EXTENDED_LOGICAL_ANTENNA | TMR_READER_FEATURES_FLAG_REGION_CONFIGURATION),
+}TMR_Reader_FeaturesFlag;
 
 /**
  * Object to hold the per antenna stats
@@ -297,6 +370,10 @@ typedef struct TMR_Queue_tagReads
   {
     /* Buffer to hold serial message response */
     uint8_t *sMsg;
+#ifdef TMR_ENABLE_LLRP_READER
+    /* Buffer to hold LLRP message response */
+    LLRP_tSMessage *lMsg;
+#endif
   } tagEntry;
 
   uint8_t bufPointer;
@@ -309,6 +386,28 @@ typedef struct TMR_Queue_tagReads
 typedef TMR_SR_GEN2_QType TMR_GEN2_QType;
 typedef TMR_SR_GEN2_QStatic TMR_GEN2_QStatic;
 typedef TMR_SR_GEN2_Q TMR_GEN2_Q;
+
+/**
+ * Options for license key operation 
+ */
+typedef enum TMR_LicenseOption
+{
+  /** Set Valid License Key */
+  TMR_SET_LICENSE_KEY = 0x01,     
+  /** Erase License Key */
+  TMR_ERASE_LICENSE_KEY = 0x02, 
+}TMR_LicenseOption;
+
+/**
+ * Manage License Operation structure
+ */
+typedef struct TMR_LicenseOperation
+{
+  /** Option for license key operation */
+  TMR_LicenseOption option;
+  /** License key if option is Set license key */
+  TMR_uint8List *license;
+}TMR_LicenseOperation;
 
 /**
  * @defgroup reader Reader
@@ -347,8 +446,9 @@ struct TMR_Reader
 
   TMR_readParams readParams;
   TMR_tagOpParams tagOpParams;
+  TMR_regulatoryParams regulatoryParams;
   char uri[TMR_MAX_READER_NAME_LENGTH];
-  
+
   bool continuousReading;
   bool trueAsyncflag;
   bool searchStatus;
@@ -358,8 +458,16 @@ struct TMR_Reader
   bool fastSearch;
   /* Option for Trigger Read */
   bool triggerRead;
+  /* Option for Duty cycle*/
+  bool dutyCycle;
   /* Option for stop N tag trigger */
   bool isStopNTags;
+  /* Param wait indicator for Reader and protocol param control during continuous read */
+  bool paramWait;
+  /* Param response for Reader and protocol param control during continuous read */
+  uint8_t paramMessage[256];
+  /* True Continuous Read Start indicator */
+  bool hasContinuousReadStarted;
   /* Total tag count for sto N trigger */
   uint32_t numberOfTagsToRead;
   /* Does ResetStats feature work on this reader?
@@ -371,20 +479,36 @@ struct TMR_Reader
   bool _storeSupportsResetStats;
   /* the option to request for background thread cancel */
   bool backgroundThreadCancel;
-
+  /* the option for pulling tags from module/reader buffer */
+  bool fetchTagReads;
+  /* To perform Sleep, in case of pseudo async read */
+  bool isOffTimeAdded;
+  /* Holds asyncofftime of individual read plan, in case of multi read plan*/
+  uint32_t subOffTime;
+  /* Holds the time spent in fetching tags */
+  uint64_t tagFetchTime;
+  uint8_t extendedAntOption;
+  /* To fix Bug#5899
+   * Making this flag true for M6e variant modules.
+   * Using it to enable/disable the read filter and to add metadata field in sync read command. */
+  bool isM6eVariant;
   union
   {
     TMR_SR_SerialReader serialReader;
     /*
      *TMR_RQL_RqlReader rqlReader;
      */
-
+#ifdef TMR_ENABLE_LLRP_READER
+    TMR_LLRP_LlrpReader llrpReader;
+#endif
   }u;
 
 #ifdef TMR_ENABLE_BACKGROUND_READS
   bool backgroundSetup, backgroundEnabled, backgroundRunning;
   bool parserSetup, parserEnabled, parserRunning;
+#endif
   bool finishedReading;
+#ifdef TMR_ENABLE_BACKGROUND_READS
   enum TMR_ReadState readState;
   unsigned int queue_depth;
   sem_t queue_slots, queue_length;
@@ -398,16 +522,22 @@ struct TMR_Reader
   pthread_t backgroundReader;
   pthread_t backgroundParser;
   pthread_t autonomousBackgroundReader;
-  TMR_ReadListenerBlock *readListeners;
   TMR_AuthReqListenerBlock *authReqListeners;
+#endif
+  TMR_ReadListenerBlock *readListeners;
   TMR_ReadExceptionListenerBlock *readExceptionListeners;
   TMR_StatsListenerBlock *statsListeners;
+#ifdef TMR_ENABLE_BACKGROUND_READS
   TMR_StatusListenerBlock *statusListeners;
   TMR_Queue_tagReads *tagQueueTail;
   TMR_Queue_tagReads *tagQueueHead;
 #endif
   TMR_Reader_StatsFlag statsFlag;
   TMR_SR_StatusType streamStats;
+  TMR_TRD_MetadataFlag userMetadataFlag;
+  uint8_t portmask;
+  bool isReadAfterWrite;
+  TMR_Reader_FeaturesFlag featureFlags;
 
 
   /* Level 1 */
@@ -450,8 +580,8 @@ struct TMR_Reader
   /* Level 3 */
 #ifdef TMR_ENABLE_BACKGROUND_READS
   TMR_Status (*cmdAutonomousReading)(struct TMR_Reader *reader, TMR_TagReadData *trd, TMR_Reader_StatsValues *stats);
-  TMR_Status (*cmdStopReading)(struct TMR_Reader *reader);
 #endif
+  TMR_Status (*cmdStopReading)(struct TMR_Reader *reader);
 };
 
 /**
@@ -851,6 +981,7 @@ TMR_Status TMR_reboot(struct TMR_Reader *reader);
  * Get a list of the parameters available
  *
  * Supported Parameters:
+ * @li /reader/AntennaReturnloss
  * @li /reader/antenna/checkPort
  * @li /reader/antenna/connectedPortList
  * @li /reader/antenna/portList
@@ -859,6 +990,7 @@ TMR_Status TMR_reboot(struct TMR_Reader *reader);
  * @li /reader/antenna/settlingTimeList
  * @li /reader/antenna/txRxMap
  * @li /reader/asyncofftime
+ * @li /reader/asyncontime
  * @li /reader/baudRate
  * @li /reader/commandTimeout
  * @li /reader/currentTime
@@ -867,8 +999,12 @@ TMR_Status TMR_reboot(struct TMR_Reader *reader);
  * @li /reader/gen2/BLF
  * @li /reader/gen2/accessPassword
  * @li /reader/gen2/bap
+ * @li /reader/gen2/initQ
+ * @li /reader/gen2/protocolExtension
  * @li /reader/gen2/q
+ * @li /reader/gen2/sendSelect
  * @li /reader/gen2/session
+ * @li /reader/gen2/t4
  * @li /reader/gen2/tagEncoding
  * @li /reader/gen2/target
  * @li /reader/gen2/tari
@@ -882,6 +1018,10 @@ TMR_Status TMR_reboot(struct TMR_Reader *reader);
  * @li /reader/iso180006b/delimiter
  * @li /reader/iso180006b/modulationDepth
  * @li /reader/licenseKey
+ * @li /reader/licensedFeatures
+ * @li /reader/manageLicenseKey
+ * @li /reader/metadata
+ * @li /reader/metadataflags
  * @li /reader/powerMode
  * @li /reader/probeBaudRates
  * @li /reader/radio/enablePowerSave
@@ -896,14 +1036,28 @@ TMR_Status TMR_reboot(struct TMR_Reader *reader);
  * @li /reader/read/asyncOffTime
  * @li /reader/read/asyncOnTime
  * @li /reader/read/plan
+ * @li /reader/region/dwellTime
+ * @li /reader/region/dwellTime/enable
  * @li /reader/region/hopTable
  * @li /reader/region/hopTime
  * @li /reader/region/id
  * @li /reader/region/lbt/enable
+ * @li /reader/region/lbtThreshold
+ * @li /reader/region/minimumFrequency
+ * @li /reader/region/quantizationStep
  * @li /reader/region/supportedRegions
+ * @li /reader/regulatory/enable
+ * @li /reader/regulatory/mode
+ * @li /reader/regulatory/modulation
+ * @li /reader/regulatory/offTime
+ * @li /reader/regulatory/offtime
+ * @li /reader/regulatory/onTime
+ * @li /reader/regulatory/ontime
+ * @li /reader/selectedProtocols
  * @li /reader/statistics
  * @li /reader/stats
  * @li /reader/stats/enable
+ * @li /reader/stats/statsValue
  * @li /reader/status/antennaEnable
  * @li /reader/status/frequencyEnable
  * @li /reader/status/temperatureEnable
@@ -976,7 +1130,7 @@ TMR_Param TMR_paramID(const char *name);
  * @ingroup reader
  * 
  * Add a listener to the list of functions that will be called for
- * each message sent to or recieved from the reader.
+ * each message sent to or received from the reader.
  *
  * @param reader The reader to operate on.
  * @param block A structure containing a pointer to the listener
@@ -990,7 +1144,7 @@ TMR_Status TMR_addTransportListener(TMR_Reader *reader, TMR_TransportListenerBlo
  * @ingroup reader
  * 
  * Remove a listener from the list of functions that will be called
- * for each message sent to or recieved from the reader.
+ * for each message sent to or received from the reader.
  *
  * @param reader The reader to operate on.
  * @param block A structure containing a pointer to the listener
@@ -1142,9 +1296,9 @@ TMR_Status TMR_stopReading(struct TMR_Reader *reader);
 
 /**
  * @ingroup reader
- * Stores the transport init function againest the provided scheme.
+ * Stores the transport init function against the provided scheme.
  *
- * @param scheme the transport schme name.
+ * @param scheme the transport scheme name.
  * @param nativeInit reference to the init function.
  */ 
 TMR_Status TMR_setSerialTransport(char* scheme, TMR_TransportNativeInit nativeInit);
@@ -1160,14 +1314,14 @@ const char *TMR_strerr(TMR_Reader *reader, TMR_Status status);
 
 /**
  * @ingroup reader
- * This funcution will initialize the
+ * This function will initialize the
  * TMR_StatValues structure with the default values
  */
 TMR_Status TMR_STATS_init(TMR_Reader_StatsValues *stats);
 
 /**
  * @ingroup reader
- * This funcution loads the reader configuration parameters from file and applies to module.
+ * This function loads the reader configuration parameters from file and applies to module.
  *
  * @param reader The reader to operate on.
  * @param filePath load reader configurations from filepath.
@@ -1176,12 +1330,14 @@ TMR_Status TMR_loadConfig(struct TMR_Reader *reader, char *filePath);
 
 /**
  * @ingroup reader
- * This funcution saves the current reader configuration parameters and its values to a file.
+ * This function saves the current reader configuration parameters and its values to a file.
  *
  * @param reader The reader to operate on.
  * @param filePath  save reader configurations from filepath.
  */
 TMR_Status TMR_saveConfig(struct TMR_Reader *reader, char *filePath);
+
+TMR_Status isAntDetectEnabled(struct TMR_Reader *reader, uint8_t *antennaList);
 
 #ifndef DOXYGEN_IGNORE
 

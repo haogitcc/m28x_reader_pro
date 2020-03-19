@@ -67,7 +67,7 @@ typedef enum TMR_Param
   TMR_PARAM_ANTENNA_PORTSWITCHGPOS,
   /** "/reader/antenna/settlingTimeList", TMR_PortValueList  */
   TMR_PARAM_ANTENNA_SETTLINGTIMELIST,
-  /** "reader/antenna/returnLoss", TMR_PortValueList */
+  /** "/reader/antenna/returnLoss", TMR_PortValueList */
   TMR_PARAM_ANTENNA_RETURNLOSS,
   /** "/reader/antenna/txRxMap", TMR_AntennaMapList  */
   TMR_PARAM_ANTENNA_TXRXMAP,
@@ -85,19 +85,25 @@ typedef enum TMR_Param
   TMR_PARAM_GEN2_SESSION,
   /** "/reader/gen2/target", TMR_GEN2_Target */
   TMR_PARAM_GEN2_TARGET,
-  /** "/reader/gen2/BLF", TMR_Gen2_LinkFrequency */
+  /** "/reader/gen2/BLF", TMR_GEN2_LinkFrequency */
   TMR_PARAM_GEN2_BLF,
-  /** "/reader/gen2/tari", TMR_Gen2_Tari */
+  /** "/reader/gen2/tari", TMR_GEN2_Tari */
   TMR_PARAM_GEN2_TARI,
-  /**"/reader/gen2/writeMode", TMR_Gen2_WriteMode*/
+  /**"/reader/gen2/writeMode", TMR_GEN2_WriteMode*/
   TMR_PARAM_GEN2_WRITEMODE,
-  /** "/reader/gen2/bap", TMR_Gen2_Bap */
+  /** "/reader/gen2/bap", TMR_GEN2_Bap */
   TMR_PARAM_GEN2_BAP,
+  /** "/reader/gen2/initQ", TMR_GEN2_initQ */
+  TMR_PARAM_GEN2_INITIAL_Q,
+  /** "/reader/gen2/sendSelect", bool */
+  TMR_PARAM_GEN2_SEND_SELECT,
+  /** "/reader/gen2/protocolExtension", TMR_GEN2_ProtocolExtension */
+  TMR_PARAM_GEN2_PROTOCOLEXTENSION,
   /** "/reader/iso180006b/BLF", TMR_ISO180006B_LinkFrequency */
   TMR_PARAM_ISO180006B_BLF,
   /** "/reader/iso180006b/modulationDepth", TMR_ISO180006B_ModulationDepth */
   TMR_PARAM_ISO180006B_MODULATION_DEPTH,
-  /** "/reader/iso180006b/delimiter", TMR_PARAM_ISO18000_6B_DELIMITER */
+  /** "/reader/iso180006b/delimiter", TMR_ISO18000_6B_Delimiter */
   TMR_PARAM_ISO180006B_DELIMITER,
   /** "/reader/read/asyncOffTime", uint32_t */
   TMR_PARAM_READ_ASYNCOFFTIME,
@@ -105,20 +111,20 @@ typedef enum TMR_Param
   TMR_PARAM_READ_ASYNCONTIME,
   /** "/reader/read/plan", TMR_ReadPlan */
   TMR_PARAM_READ_PLAN,
-  /** "/reader/radio/enablePowerSave, bool **/
+  /** "/reader/radio/enablePowerSave", bool */
   TMR_PARAM_RADIO_ENABLEPOWERSAVE,
   /** "/reader/radio/powerMax", int16_t */
   TMR_PARAM_RADIO_POWERMAX,
   /** "/reader/radio/powerMin", int16_t */
   TMR_PARAM_RADIO_POWERMIN,
-  /** "/reader/radio/portReadPowerList", TMR_PortValueList */
-  TMR_PARAM_RADIO_PORTREADPOWERLIST,
-  /** "/reader/radio/portWritePowerList", TMR_PortValueList */
-  TMR_PARAM_RADIO_PORTWRITEPOWERLIST,
   /** "/reader/radio/readPower", int32_t */
   TMR_PARAM_RADIO_READPOWER,
   /** "/reader/radio/writePower", int32_t */
   TMR_PARAM_RADIO_WRITEPOWER,
+  /** "/reader/radio/portReadPowerList", TMR_PortValueList */
+  TMR_PARAM_RADIO_PORTREADPOWERLIST,
+  /** "/reader/radio/portWritePowerList", TMR_PortValueList */
+  TMR_PARAM_RADIO_PORTWRITEPOWERLIST,
   /** "/reader/radio/temperature", int8_t */
   TMR_PARAM_RADIO_TEMPERATURE,
   /** "/reader/tagReadData/recordHighestRssi", bool */
@@ -131,7 +137,7 @@ typedef enum TMR_Param
   TMR_PARAM_TAGREADDATA_UNIQUEBYDATA,
   /** "/reader/tagop/antenna", uint8_t */
   TMR_PARAM_TAGOP_ANTENNA,
-  /** "/reader/tagop/protocol", TMR_Protocol */
+  /** "/reader/tagop/protocol", TMR_TagProtocol */
   TMR_PARAM_TAGOP_PROTOCOL,
   /** "/reader/version/hardware", TMR_String */
   TMR_PARAM_VERSION_HARDWARE,
@@ -143,16 +149,22 @@ typedef enum TMR_Param
   TMR_PARAM_VERSION_SOFTWARE,
   /** "/reader/version/supportedProtocols", TMR_TagProtocolList */
   TMR_PARAM_VERSION_SUPPORTEDPROTOCOLS,
-  /** "/reader/region/id", TMR_Region */
-  TMR_PARAM_REGION_ID,
-  /** "/reader/region/supportedRegions", TMR_RegionList */
-  TMR_PARAM_REGION_SUPPORTEDREGIONS,
   /** "/reader/region/hopTable", TMR_uint32List */
   TMR_PARAM_REGION_HOPTABLE,
   /** "/reader/region/hopTime", uint32_t */
   TMR_PARAM_REGION_HOPTIME,
+  /** "/reader/region/id", TMR_Region */
+  TMR_PARAM_REGION_ID,
+  /** "/reader/region/supportedRegions", TMR_RegionList */
+  TMR_PARAM_REGION_SUPPORTEDREGIONS,
   /** "/reader/region/lbt/enable", bool */
   TMR_PARAM_REGION_LBT_ENABLE,
+  /** "/reader/region/dwellTime/enable", bool*/
+  TMR_PARAM_REGION_DWELL_TIME_ENABLE,
+  /** "/reader/region/lbtThreshold", uint8_t */
+  TMR_PARAM_REGION_LBT_THRESHOLD,
+  /** "/reader/region/dwellTime", uint32_t */
+  TMR_PARAM_REGION_DWELL_TIME,
   /** "/reader/licenseKey", TMR_uint8List */
   TMR_PARAM_LICENSE_KEY,
   /** "/reader/userConfig", TMR_UserConfigOption */
@@ -163,7 +175,7 @@ typedef enum TMR_Param
   TMR_PARAM_EXTENDEDEPC,
   /** "/reader/statistics", TMR_SR_ReaderStatistics */
   TMR_PARAM_READER_STATISTICS,
-  /** "/reader/stats", TMR_ */
+  /** "/reader/stats", TMR_Reader_StatsValues */
   TMR_PARAM_READER_STATS,
   /** "/reader/uri", TMR_String */
   TMR_PARAM_URI,
@@ -191,24 +203,66 @@ typedef enum TMR_Param
   TMR_PARAM_TAGREADDATA_UNIQUEBYPROTOCOL,
   /** "/reader/description", TMR_String */
   TMR_PARAM_READER_DESCRIPTION,
-  /** "reader/hostname", TMR_String */
+  /** "/reader/hostname", TMR_String */
   TMR_PARAM_READER_HOSTNAME,
   /** "/reader/currentTime", struct tm */
   TMR_PARAM_CURRENTTIME,
-	/** "/reader/gen2/writeReplyTimeout", uint16_t */
-	TMR_PARAM_READER_WRITE_REPLY_TIMEOUT,
-	/** "/reader/gen2/writeEarlyExit", bool */
-	TMR_PARAM_READER_WRITE_EARLY_EXIT,
-  /** "reader/stats/enable", TMR_StatsEnable */
+  /** "/reader/gen2/writeReplyTimeout", uint16_t */
+  TMR_PARAM_READER_WRITE_REPLY_TIMEOUT,
+  /** "/reader/gen2/writeEarlyExit", bool */
+  TMR_PARAM_READER_WRITE_EARLY_EXIT,
+  /** "/reader/stats/enable", TMR_StatsEnable */
   TMR_PARAM_READER_STATS_ENABLE,
   /** "/reader/trigger/read/Gpi", TMR_uint8List */
   TMR_PARAM_TRIGGER_READ_GPI,
+  /** "/reader/metadataflags", TMR_TRD_MetadataFlag */
+  TMR_PARAM_METADATAFLAG,
+  /** "/reader/gen2/t4", uint32_t */
+  TMR_PARAM_GEN2_T4,
+  /** "/reader/licensedFeatures", TMR_uint8List */
+  TMR_PARAM_LICENSED_FEATURES,
+  /** "/reader/selectedProtocols", TMR_TagProtocolList */
+  TMR_PARAM_SELECTED_PROTOCOLS,
+  /** "/reader/region/quantizationStep", uint32_t */
+  TMR_PARAM_REGION_QUANTIZATION_STEP,
+  /** "/reader/region/minimumFrequency", uint32_t */
+  TMR_PARAM_REGION_MINIMUM_FREQUENCY,
+  /** "/reader/manageLicenseKey", TMR_LicenseOperation */
+  TMR_PARAM_MANAGE_LICENSE_KEY,
+  /** "/reader/regulatory/mode", TMR_SR_RegulatoryMode */
+  TMR_PARAM_REGULATORY_MODE,
+  /** "/reader/regulatory/modulation", TMR_SR_RegulatoryModulation */
+  TMR_PARAM_REGULATORY_MODULATION,
+  /** "/reader/regulatory/onTime", uint32_t */
+  TMR_PARAM_REGULATORY_ONTIME,
+  /** "/reader/regulatory/offTime", uint32_t */
+  TMR_PARAM_REGULATORY_OFFTIME,
+  /** "/reader/regulatory/enable", bool */
+  TMR_PARAM_REGULATORY_ENABLE,
   TMR_PARAM_END,
   TMR_PARAM_MAX = TMR_PARAM_END-1,
 
 } TMR_Param;
 
 #define TMR_PARAMWORDS ((1 + TMR_PARAM_MAX +31) / 32)
+
+/**
+ * Options for TMR_SR_OPCODE_FREQ_HOP_TABLE
+ * These option can be used with opcode
+ * 0x65 : TMR_SR_OPCODE_GET_FREQ_HOP_TABLE
+ * 0x95 : TMR_SR_OPCODE_SET_FREQ_HOP_TABLE
+ */
+typedef enum TMR_SR_OPCODE_FREQ_HOP_TABLE_OPTION
+{
+  /* Option for hopTime */
+  TMR_SR_OPCODE_FREQ_HOP_TABLE_OPTION_HOPTIME = 0x01,
+  /* Option for quantizationStep */
+  TMR_SR_OPCODE_FREQ_HOP_TABLE_OPTION_QUANTIZATION_STEP = 0x02,
+  /* Option for minimumFrequency */
+  TMR_SR_OPCODE_FREQ_HOP_TABLE_OPTION_MINIMUM_FREQUENCY = 0x03,
+
+} TMR_SR_OPCODE_FREQ_HOP_TABLE_OPTION;
+
 
 #ifdef __cplusplus
 }
