@@ -611,25 +611,25 @@ void*m6e_pthread_client(void *arg)
 	if(continueRead)
 		sleep(2);
 	while(1) {
-    		FD_ZERO(&set);
+    	FD_ZERO(&set);
 		FD_ZERO(&errornew_fd);
-    		FD_SET(connected_fd, &set);
+    	FD_SET(connected_fd, &set);
 		FD_SET(connected_fd, &errornew_fd);
-    		tv.tv_sec = timeoutMs/1000;
-    		tv.tv_usec = (timeoutMs % 1000) * 1000;
-    		/* Ideally should reset this timeout value every time through */
-    		ret = select(connected_fd + 1, &set, NULL, &errornew_fd, NULL);
+    	tv.tv_sec = timeoutMs/1000;
+    	tv.tv_usec = (timeoutMs % 1000) * 1000;
+    	/* Ideally should reset this timeout value every time through */
+    	ret = select(connected_fd + 1, &set, NULL, &errornew_fd, NULL);
 		//printf("select ret = %d\n",ret);
-    		if (ret < 1 || connected_fd != client_fd)
-    		{
-    			printf("select error!\n");
-      			break;
-    		}
+    	if (ret < 1 || connected_fd != client_fd)
+    	{
+    		printf("select error!\n");
+   			break;
+    	}
 
 		if(0 == ret)
 			continue;
 
-            if(FD_ISSET(connected_fd, &set) || FD_ISSET(connected_fd, &errornew_fd)) {
+        if(FD_ISSET(connected_fd, &set) || FD_ISSET(connected_fd, &errornew_fd)) {
            	ret = -1;
             len = sizeof(ret);
             getsockopt(connected_fd, SOL_SOCKET, SO_ERROR, (void*)&ret, &len);
@@ -641,87 +641,90 @@ void*m6e_pthread_client(void *arg)
                 break;
             }
 
-		len = 0;
-		memset(buffer,0,MSGLEN);
-		error = recv(connected_fd, buffer, MSGLEN, MSG_DONTWAIT);
-		//while(len < MSGLEN && ((len = recv(connected_fd, buffer + len, MSGLEN - len, 0)) > 0))
-		//	len += error;
-			
-		//printf("buffer = %p,%p,%p,%p,%p, %d\n",buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],error);
-		if(error == 0)
-			break;
-			
-		if(buffer[0] == 0xFF && buffer[1] == 0xFF)
-			continue;
-		
-		if(buffer[0] != 0xFF || error != buffer[1] + 5)
-			continue;
-		
-		if((buffer[1]+5) != error)
-			error = buffer[1] + 5;
-
-		if(buffer[2] == 0x80)  //\D6\D8\C6\F4\B6\C1д\C6\F7
-			reader_restart(connected_fd);
-		else if(buffer[2] == 0x66) {
-			reader_gpi(buffer, connected_fd);
-			continue;
-		} else if(buffer[2] == 0x96 && (buffer[3] == 0x07 || buffer[3] == 0x08)) {
-			reader_gpo(connected_fd, buffer[3], buffer[4]);
-			continue;
-		}
-
-		m6e_set_opcode(buffer);
-		if(buffer[2] == 0x0D)
-		{
-			if(m6e_upgrade_openfile())
-				continue;
-			error = m6e_upgrade_resolve(buffer);
-			if(error > 0) {
-				 int flags = m6e_upgrade_response(connected_fd);
-				}
-			if(240 == error)
-				continue;
-			else {
-				m6e_upgrade_close();
-				if(m6e_upgrade_check() < 0)
-					continue;
-				m6e_upgrade_reboot();
-			}
-		}
-
-		opcode = buffer[2];
-		error = serial_sendBytes(error, buffer);
-		//printf("error = %d\n",error);				
-try:
-		if(continueRead == 0) {
-			memset(buffer,0,MSGLEN);
 			len = 0;
-			error = receiveMessage(buffer, &len, 30000);
-			//printf("serial_receiveBytes = %p,%p,%p,%p,%p,%d,%d\n",buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],len,error);
-			if(len <= 0)
-				continue;
-			if(buffer[2] != opcode) {
-				printf("opcode does not match!\n");
-				goto try;
-			}
-			if(buffer[2] == 0x03)
-				m6e_firmware_response(buffer);
-			error = tcp_sendBytes(connected_fd, len, buffer);
-				//printf("tcp send = %d\n",error);
-		}
-		if(!continueRead && (buffer[0]== 0xFF) && (buffer[2] == 0x2F) && (buffer[6] == 0x22) ) {
-			printf("continue!\n");
-			pthread_t stbmonitor_pthread = 0;
-			pthread_attr_t tattr;
-			pthread_attr_init(&tattr);
-			pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
-			pthread_create(&stbmonitor_pthread, &tattr, m6e_pthread_send, connected_fd);
-			pthread_detach(stbmonitor_pthread);
-			//mid_task_create_ex("send_client", m6e_pthread_send, connected_fd);
+			memset(buffer,0,MSGLEN);
+			error = recv(connected_fd, buffer, MSGLEN, MSG_DONTWAIT);
+			//while(len < MSGLEN && ((len = recv(connected_fd, buffer + len, MSGLEN - len, 0)) > 0))
+			//	len += error;
 				
-			//mid_task_create_ex("send_client1", send_client, NULL);
-			continueRead = 1;
-		}
+			//printf("buffer = %p,%p,%p,%p,%p, %d\n",buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],error);
+			if(error == 0)
+				break;
+				
+			if(buffer[0] == 0xFF && buffer[1] == 0xFF)
+				continue;
+			
+			if(buffer[0] != 0xFF || error != buffer[1] + 5)
+				continue;
+			
+			if((buffer[1]+5) != error)
+				error = buffer[1] + 5;
+
+			if(buffer[2] == 0x80)  //\D6\D8\C6\F4\B6\C1д\C6\F7
+				reader_restart(connected_fd);
+			else if(buffer[2] == 0x66) {
+				reader_gpi(buffer, connected_fd);
+				continue;
+			} else if(buffer[2] == 0x96 && (buffer[3] == 0x07 || buffer[3] == 0x08)) {
+				reader_gpo(connected_fd, buffer[3], buffer[4]);
+				continue;
+			}
+
+			m6e_set_opcode(buffer);
+			if(buffer[2] == 0x0D)
+			{
+				if(m6e_upgrade_openfile())
+					continue;
+				error = m6e_upgrade_resolve(buffer);
+				if(error > 0) {
+					 int flags = m6e_upgrade_response(connected_fd);
+					}
+				if(240 == error)
+					continue;
+				else {
+					m6e_upgrade_close();
+					if(m6e_upgrade_check() < 0)
+						continue;
+					m6e_upgrade_reboot();
+				}
+			}
+
+			opcode = buffer[2];
+			error = serial_sendBytes(error, buffer);
+			//printf("error = %d\n",error);				
+	try:
+			if(continueRead == 0) {
+				memset(buffer,0,MSGLEN);
+				len = 0;
+				error = receiveMessage(buffer, &len, 30000);
+				//printf("serial_receiveBytes = %p,%p,%p,%p,%p,%d,%d\n",buffer[0],buffer[1],buffer[2],buffer[3],buffer[4],len,error);
+				if(len <= 0)
+					continue;
+				if(buffer[2] != opcode) {
+					printf("opcode does not match!\n");
+					goto try;
+				}
+				if(buffer[2] == 0x03)
+				{
+					// Remove fake firmware info return
+					//m6e_firmware_response(buffer);
+				}
+				error = tcp_sendBytes(connected_fd, len, buffer);
+					//printf("tcp send = %d\n",error);
+			}
+			if(!continueRead && (buffer[0]== 0xFF) && (buffer[2] == 0x2F) && (buffer[6] == 0x22) ) {
+				printf("continue!\n");
+				pthread_t stbmonitor_pthread = 0;
+				pthread_attr_t tattr;
+				pthread_attr_init(&tattr);
+				pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
+				pthread_create(&stbmonitor_pthread, &tattr, m6e_pthread_send, connected_fd);
+				pthread_detach(stbmonitor_pthread);
+				//mid_task_create_ex("send_client", m6e_pthread_send, connected_fd);
+					
+				//mid_task_create_ex("send_client1", send_client, NULL);
+				continueRead = 1;
+			}
         }		
 	}	
 	printf("end!\n");
