@@ -303,15 +303,20 @@ callback(TMR_Reader *reader, const TMR_TagReadData *t, void *cookie)
 	char epcStr[128];
 	int i = 0;
 	TMR_bytesToHex(t->tag.epc, t->tag.epcByteCount, epcStr);
-	printf("epc:%s, ant: %d, RSSI: %d\n", epcStr, t->antenna, t->rssi);
+	//printf("epc:%s, ant: %d, RSSI: %d\n", epcStr, t->antenna, t->rssi);
 
 
-	if(t->tag.epcByteCount == length && !strncmp(filter, epcStr, 4)) 
+	//length 标签长度 指定参与报警的标签的长度
+	//filter 客户编码 不以filter开头的标签
+	// change for filter is 2018 tags, than buzzer
+	if(t->tag.epcByteCount == length && strncmp(filter, epcStr, 4) == 0) 
 	{
+	printf("epc:%s, ant: %d, RSSI: %d\n", epcStr, t->antenna, t->rssi);
+	//id 防盗码 后四位等于id的不报警
 		char str[4];
 		for(i = 20; i < 24; i ++)
 			str[i-20] = epcStr[i];
-		if(strncmp(id, str, 4))
+		if(strncmp(id, str, 4) == 0)
 			return;
 		int isBuzzer = 0;
 		sys_buzzer_get(&isBuzzer);
