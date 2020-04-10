@@ -10,17 +10,7 @@
 #include <poll.h>
 
 #include "app_sys_setting.h"
-
-#define GPO_28 44
-#define GPO_29 43
-#define GPI_30 42
-#define GPI_31 41
-
-//#define GPO1_DEVICE "/sys/class/gpio/gpio108/value"
-#define GPO2_DEVICE "/sys/class/gpio/gpio44/value"
-#define GPO3_DEVICE "/sys/class/gpio/gpio43/value"
-#define GPO4_DEVICE "/sys/class/gpio/gpio42/value"
-#define GPO5_DEVICE "/sys/class/gpio/gpio41/value"
+#include "reader.h"
 
 #define MSG(args...) printf(args);
 

@@ -12,6 +12,7 @@
 #include <linux/tcp.h>
 #include <stdint.h>
 
+#include "reader.h"
 #include "gpio_init.h"
 #include "mid_mutex.h"
 #include "server_m6e.h"
